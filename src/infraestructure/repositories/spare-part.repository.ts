@@ -66,6 +66,7 @@ export class SparePartRepository
     return this.save({
       name: data.name,
       stock: data.stock,
+      price: data.price,
       mechanic: { id: data.mechanicId },
     });
   }

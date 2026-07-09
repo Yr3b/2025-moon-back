@@ -79,6 +79,7 @@ export class SparePartService implements ISparePartService {
   async update(part: SparePart, dto: UpdateSparePartDto): Promise<SparePart> {
     part.name = dto.name;
     part.stock = dto.stock;
+    part.price = dto.price;
     await this.repository.save(part);
     // @ts-expect-error dont return mechanic so we don't expose user data
     return { ...part, mechanic: undefined };

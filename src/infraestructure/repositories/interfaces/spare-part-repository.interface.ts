@@ -8,6 +8,7 @@ import { Service } from 'src/infraestructure/entities/service/service.entity';
 export interface CreateSparePartData {
   name: string;
   stock: number;
+  price: number;
   mechanicId: number;
 }
 
