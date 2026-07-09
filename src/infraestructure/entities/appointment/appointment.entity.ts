@@ -59,6 +59,9 @@ export class Appointment extends BaseEntity {
   finalPrice: number | null;
 
   @Column({ type: 'int', nullable: true })
+  billedTotal: number | null;
+
+  @Column({ type: 'int', nullable: true })
   discountCouponId: number | null;
 
   @ManyToOne(() => DiscountCoupon, { nullable: true })

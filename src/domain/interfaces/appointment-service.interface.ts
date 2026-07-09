@@ -9,6 +9,11 @@ import { DateFilter } from 'src/infraestructure/repositories/interfaces/appointm
 export interface IAppointmentService {
   findById(id: number): Promise<Appointment>;
   findDetailsById(id: number): Promise<Appointment>;
+  updateBilling(
+    appointmentId: number,
+    billedTotal: number | null,
+    finalPrice: number,
+  ): Promise<void>;
   updateStatus(
     id: number,
     status: AppointmentStatus,

@@ -41,6 +41,12 @@ import {
   type IUsersTokenService,
   IUsersTokenServiceToken,
 } from 'src/domain/interfaces/users-token-service.interface';
+import {
+  type IBudgetRepository,
+  IBudgetRepositoryToken,
+} from 'src/infraestructure/repositories/interfaces/budget-repository.interface';
+import { BudgetStatus } from 'src/infraestructure/entities/budget/budget-status.enum';
+import { BudgetItemKind } from 'src/infraestructure/entities/budget/budget-item-kind.enum';
 
 @Injectable()
 export class AppointmentService implements IAppointmentService {
@@ -60,7 +66,20 @@ export class AppointmentService implements IAppointmentService {
     private expenseTrackerService: IExpenseTrackerService,
     @Inject(IUsersTokenServiceToken)
     private usersTokenService: IUsersTokenService,
+    @Inject(IBudgetRepositoryToken)
+    private readonly budgetRepository: IBudgetRepository,
   ) {}
+
+  async updateBilling(
+    appointmentId: number,
+    billedTotal: number | null,
+    finalPrice: number,
+  ): Promise<void> {
+    await this.appointmentRepository.update(appointmentId, {
+      billedTotal,
+      finalPrice,
+    });
+  }
 
   async findById(id: number): Promise<Appointment> {
     const appointment = await this.appointmentRepository.findById(id);
@@ -142,6 +161,8 @@ export class AppointmentService implements IAppointmentService {
       throw new BadRequestException('Invalid status transition');
     }
 
+    await this.assertBudgetAllowsTransition(appointmentId, newStatus);
+
     appointment.status = newStatus;
     await this.appointmentRepository.save(appointment);
 
@@ -153,6 +174,47 @@ export class AppointmentService implements IAppointmentService {
       new AppointmentStatusChangedEvent(detailedAppointment, user),
     );
     return appointment;
+  }
+
+  private async assertBudgetAllowsTransition(
+    appointmentId: number,
+    newStatus: AppointmentStatus,
+  ): Promise<void> {
+    if (
+      newStatus !== AppointmentStatus.CONFIRMED &&
+      newStatus !== AppointmentStatus.IN_SERVICE &&
+      newStatus !== AppointmentStatus.SERVICE_COMPLETED &&
+      newStatus !== AppointmentStatus.COMPLETED
+    ) {
+      return;
+    }
+
+    const budgets =
+      await this.budgetRepository.findByAppointmentId(appointmentId);
+
+    if (newStatus === AppointmentStatus.CONFIRMED) {
+      const original = budgets.find((b) => !b.isAdditional);
+      if (!original || original.status !== BudgetStatus.APPROVED) {
+        throw new BadRequestException(
+          'No se puede confirmar el turno hasta que el cliente apruebe el presupuesto.',
+        );
+      }
+    }
+
+    // Cualquier adicional en borrador o enviado (sin respuesta) frena el avance.
+    const unresolvedAdditional = budgets.find(
+      (b) =>
+        b.isAdditional &&
+        b.status !== BudgetStatus.APPROVED &&
+        b.status !== BudgetStatus.REJECTED,
+    );
+    if (unresolvedAdditional) {
+      const message =
+        unresolvedAdditional.status === BudgetStatus.DRAFT
+          ? 'Tenés un adicional en borrador sin enviar. Enviáselo al cliente y esperá su respuesta, o eliminalo, antes de continuar.'
+          : 'Hay un adicional enviado al cliente sin responder. Esperá su aprobación o rechazo antes de continuar.';
+      throw new BadRequestException(message);
+    }
   }
 
   deletePendingAppointmentsOfVehicle(id: number): Promise<void> {
@@ -208,6 +270,8 @@ export class AppointmentService implements IAppointmentService {
       throw new Error('Failed to create appointment');
     }
 
+    await this.createDefaultBudget(createdAppointment.id, services);
+
     await this.reduceStockFromSpareParts(createdAppointment);
 
     this.eventEmitter.emit(
@@ -216,6 +280,36 @@ export class AppointmentService implements IAppointmentService {
     );
 
     return createdAppointment;
+  }
+
+  private async createDefaultBudget(
+    appointmentId: number,
+    services: Service[],
+  ): Promise<void> {
+    if (!services || services.length === 0) return;
+
+    const items = services.map((service) => ({
+      kind: BudgetItemKind.SERVICE,
+      serviceId: service.id,
+      sparePartId: null,
+      description: service.name,
+      quantity: 1,
+      estimatedUnitPrice: service.price,
+      estimatedLineTotal: service.price,
+    }));
+    const estimatedTotal = items.reduce(
+      (sum, item) => sum + item.estimatedLineTotal,
+      0,
+    );
+
+    await this.budgetRepository.createBudget({
+      appointmentId,
+      isAdditional: false,
+      parentBudgetId: null,
+      notes: null,
+      estimatedTotal,
+      items,
+    });
   }
 
   private async reduceStockFromSpareParts(appointment: Appointment) {
