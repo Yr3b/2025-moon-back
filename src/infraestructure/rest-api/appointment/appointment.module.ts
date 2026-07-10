@@ -18,6 +18,8 @@ import { DiscountCouponRepository } from 'src/infraestructure/repositories/disco
 import { IDiscountCouponRepositoryToken } from 'src/infraestructure/repositories/interfaces/discount-coupon-repository.interface';
 import { IUserReviewRepositoryToken } from 'src/infraestructure/repositories/interfaces/user-review.repository.interface';
 import { UserReviewRepository } from 'src/infraestructure/repositories/user-review.repository';
+import { IBudgetRepositoryToken } from 'src/infraestructure/repositories/interfaces/budget-repository.interface';
+import { BudgetRepository } from 'src/infraestructure/repositories/budget.repository';
 
 @Module({
   imports: [
@@ -39,6 +41,7 @@ import { UserReviewRepository } from 'src/infraestructure/repositories/user-revi
     },
     { provide: IDiscountCouponServiceToken, useClass: DiscountCouponService },
     { provide: IUserReviewRepositoryToken, useClass: UserReviewRepository },
+    { provide: IBudgetRepositoryToken, useClass: BudgetRepository },
   ],
   exports: [IAppointmentServiceToken],
 })

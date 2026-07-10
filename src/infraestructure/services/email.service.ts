@@ -6,6 +6,9 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { APPOINTMENT_EVENTS } from 'src/domain/events/appointments/appointment-events';
 import { AppointmentStatus } from 'src/infraestructure/entities/appointment/appointment-status.enum';
 import { AppointmentStatusChangedEvent } from 'src/domain/events/appointments/appointment-status-changed-event';
+import { BUDGET_EVENTS } from 'src/domain/events/budgets/budget-events';
+import { BudgetSentEvent } from 'src/domain/events/budgets/budget-sent-event';
+import { BudgetRespondedEvent } from 'src/domain/events/budgets/budget-responded-event';
 
 @Injectable()
 export class EmailService implements IEmailService {
@@ -98,5 +101,52 @@ export class EmailService implements IEmailService {
       subject: `Calificá tu turno #${appt.id}`,
       html,
     });
+  }
+
+  @OnEvent(BUDGET_EVENTS.SENT)
+  async sendBudgetToApproveEmail(event: BudgetSentEvent) {
+    const recipient = event.getRecipient();
+    if (!recipient?.email) return;
+    const frontUrl =
+      this.configService.get<string>('FRONT_URL') ?? 'http://localhost:3000';
+    const html = `
+      <h3>Tenés un presupuesto para aprobar</h3>
+      <p>${event.getMessage()}</p>
+      <p><a href="${frontUrl}/appointments" target="_blank">Ver mis turnos y responder</a></p>
+    `;
+    try {
+      await this.transporter.sendMail({
+        from: this.from,
+        to: recipient.email,
+        subject: 'Tenés un presupuesto para aprobar',
+        html,
+      });
+      this.logger.log(`Budget-sent email sent to ${recipient.email}`);
+    } catch (err: unknown) {
+      this.logger.error(
+        'Error sending budget-sent email:',
+        (err && (err as Error)?.message) || err,
+      );
+    }
+  }
+
+  @OnEvent(BUDGET_EVENTS.RESPONDED)
+  async sendBudgetRespondedEmail(event: BudgetRespondedEvent) {
+    const recipient = event.getRecipient();
+    if (!recipient?.email) return;
+    try {
+      await this.transporter.sendMail({
+        from: this.from,
+        to: recipient.email,
+        subject: 'Respuesta a un presupuesto',
+        html: `<p>${event.getMessage()}</p>`,
+      });
+      this.logger.log(`Budget-responded email sent to ${recipient.email}`);
+    } catch (err: unknown) {
+      this.logger.error(
+        'Error sending budget-responded email:',
+        (err && (err as Error)?.message) || err,
+      );
+    }
   }
 }

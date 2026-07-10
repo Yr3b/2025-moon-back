@@ -22,6 +22,9 @@ export class SparePart extends BaseEntity {
   @Column()
   stock: number;
 
+  @Column({ type: 'int', default: 0 })
+  price: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

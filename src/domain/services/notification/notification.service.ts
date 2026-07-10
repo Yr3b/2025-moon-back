@@ -8,6 +8,9 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { JwtPayload } from 'src/domain/dtos/jwt-payload.interface';
 import { APPOINTMENT_EVENTS } from 'src/domain/events/appointments/appointment-events';
 import { AppointmentStatusChangedEvent } from 'src/domain/events/appointments/appointment-status-changed-event';
+import { BUDGET_EVENTS } from 'src/domain/events/budgets/budget-events';
+import { BudgetSentEvent } from 'src/domain/events/budgets/budget-sent-event';
+import { BudgetRespondedEvent } from 'src/domain/events/budgets/budget-responded-event';
 import { AppointmentStatus } from 'src/infraestructure/entities/appointment/appointment-status.enum';
 import { INotificationService } from 'src/domain/interfaces/notification-service.interface';
 import {
@@ -63,6 +66,22 @@ export class NotificationService implements INotificationService {
     await this.notificationRepository.save({
       user: { id: appt.user.id },
       message: reviewMessage,
+    });
+  }
+
+  @OnEvent(BUDGET_EVENTS.SENT)
+  async onBudgetSent(event: BudgetSentEvent) {
+    await this.notificationRepository.save({
+      user: { id: event.getRecipient().id },
+      message: event.getMessage(),
+    });
+  }
+
+  @OnEvent(BUDGET_EVENTS.RESPONDED)
+  async onBudgetResponded(event: BudgetRespondedEvent) {
+    await this.notificationRepository.save({
+      user: { id: event.getRecipient().id },
+      message: event.getMessage(),
     });
   }
 }
