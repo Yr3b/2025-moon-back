@@ -81,7 +81,7 @@ describe('UsersService', () => {
   describe('updatePassword', () => {
     it('should throw if current password is invalid', async () => {
       const user = { id: 1, hashedPassword: 'hashed' } as User;
-      usersRepositoryMock.findByIdOrThrow.mockResolvedValue(user);
+      usersRepositoryMock.findByIdWithPassword.mockResolvedValue(user);
       hashServiceMock.verify.mockResolvedValue(false);
       const dto: UpdateUserPasswordDto = {
         currentPassword: 'wrong',
@@ -94,7 +94,7 @@ describe('UsersService', () => {
 
     it('should update password if current password is valid', async () => {
       const user = { id: 1, hashedPassword: 'hashed' } as User;
-      usersRepositoryMock.findByIdOrThrow.mockResolvedValue(user);
+      usersRepositoryMock.findByIdWithPassword.mockResolvedValue(user);
       hashServiceMock.verify.mockResolvedValue(true);
       hashServiceMock.hash.mockResolvedValue('newHashed');
       usersRepositoryMock.save.mockResolvedValue(user);
@@ -165,7 +165,7 @@ describe('UsersService', () => {
 
   describe('login', () => {
     it('should throw if user not found', async () => {
-      usersRepositoryMock.findByEmail.mockResolvedValue(null);
+      usersRepositoryMock.findByEmailWithPassword.mockResolvedValue(null);
       const dto: LoginUserDto = { email: 'a', password: 'b' };
       await expect(usersService.login(dto)).rejects.toThrow(
         UnauthorizedException,
@@ -173,7 +173,7 @@ describe('UsersService', () => {
     });
 
     it('should throw if password is invalid', async () => {
-      usersRepositoryMock.findByEmail.mockResolvedValue({
+      usersRepositoryMock.findByEmailWithPassword.mockResolvedValue({
         hashedPassword: 'x',
       } as User);
       hashServiceMock.verify.mockResolvedValue(false);
@@ -184,7 +184,7 @@ describe('UsersService', () => {
     });
 
     it('should return token if login is valid', async () => {
-      usersRepositoryMock.findByEmail.mockResolvedValue({
+      usersRepositoryMock.findByEmailWithPassword.mockResolvedValue({
         hashedPassword: 'x',
       } as User);
       hashServiceMock.verify.mockResolvedValue(true);

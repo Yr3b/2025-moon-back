@@ -57,7 +57,8 @@ export interface IBudgetService {
   ): Promise<void>;
   deleteBudget(workshop: JwtPayload, budgetId: number): Promise<void>;
   getById(id: number): Promise<Budget>;
-  getByAppointment(appointmentId: number): Promise<Budget[]>;
+  getByIdForUser(user: JwtPayload, id: number): Promise<Budget>;
+  getByAppointment(user: JwtPayload, appointmentId: number): Promise<Budget[]>;
   getWorkshopCostControl(workshopId: number): Promise<CostControlSummary>;
 }
 

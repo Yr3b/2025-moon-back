@@ -35,9 +35,10 @@ export class BudgetController {
 
   @Get('appointment/:appointmentId')
   getByAppointment(
+    @AuthenticatedUser() user: JwtPayload,
     @Param('appointmentId', new ParseIntPipe()) appointmentId: number,
   ) {
-    return this.budgetService.getByAppointment(appointmentId);
+    return this.budgetService.getByAppointment(user, appointmentId);
   }
 
   @Post('appointment/:appointmentId')
@@ -111,7 +112,10 @@ export class BudgetController {
   }
 
   @Get(':id')
-  getById(@Param('id', new ParseIntPipe()) id: number) {
-    return this.budgetService.getById(id);
+  getById(
+    @AuthenticatedUser() user: JwtPayload,
+    @Param('id', new ParseIntPipe()) id: number,
+  ) {
+    return this.budgetService.getByIdForUser(user, id);
   }
 }

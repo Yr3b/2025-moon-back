@@ -97,6 +97,22 @@ export class AppointmentService implements IAppointmentService {
     return appointment;
   }
 
+  async findDetailsByIdForUser(
+    id: number,
+    user: JwtPayload,
+  ): Promise<Appointment> {
+    const appointment = await this.findDetailsById(id);
+    if (
+      appointment.user.id !== user.id &&
+      appointment.workshop.id !== user.id
+    ) {
+      throw new UnauthorizedException(
+        'Not authorized to access this appointment',
+      );
+    }
+    return appointment;
+  }
+
   async updateStatus(
     appointmentId: number,
     newStatus: AppointmentStatus,

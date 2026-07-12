@@ -33,6 +33,18 @@ import {
   IUsersTokenService,
   IUsersTokenServiceToken,
 } from 'src/domain/interfaces/users-token-service.interface';
+import {
+  IDiscountCouponService,
+  IDiscountCouponServiceToken,
+} from 'src/domain/interfaces/discount-coupon-service.interface';
+import {
+  IDiscountCouponRepository,
+  IDiscountCouponRepositoryToken,
+} from 'src/infraestructure/repositories/interfaces/discount-coupon-repository.interface';
+import {
+  IBudgetRepository,
+  IBudgetRepositoryToken,
+} from 'src/infraestructure/repositories/interfaces/budget-repository.interface';
 
 describe('AppointmentService', () => {
   let appointmentService: IAppointmentService;
@@ -41,6 +53,9 @@ describe('AppointmentService', () => {
   const serviceServiceMock = mockDeep<IServiceService>();
   const expenseTrackerServiceMock = mockDeep<IExpenseTrackerService>();
   const usersTokenServiceMock = mockDeep<IUsersTokenService>();
+  const discountCouponServiceMock = mockDeep<IDiscountCouponService>();
+  const discountCouponRepositoryMock = mockDeep<IDiscountCouponRepository>();
+  const budgetRepositoryMock = mockDeep<IBudgetRepository>();
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -71,6 +86,18 @@ describe('AppointmentService', () => {
           provide: IUsersTokenServiceToken,
           useValue: usersTokenServiceMock,
         },
+        {
+          provide: IDiscountCouponServiceToken,
+          useValue: discountCouponServiceMock,
+        },
+        {
+          provide: IDiscountCouponRepositoryToken,
+          useValue: discountCouponRepositoryMock,
+        },
+        {
+          provide: IBudgetRepositoryToken,
+          useValue: budgetRepositoryMock,
+        },
       ],
     }).compile();
 
@@ -93,6 +120,7 @@ describe('AppointmentService', () => {
       const service = {
         id: 1,
         name: 'Service 1',
+        price: 100,
         spareParts: [],
       } as unknown as Service;
       const appointment: Appointment = {
@@ -122,6 +150,9 @@ describe('AppointmentService', () => {
         serviceIds: [service.id],
         workshopId: workshop.id,
         vehicleId: vehicle.id,
+        originalPrice: 100,
+        finalPrice: 100,
+        discountCouponId: null,
       });
       expect(result).toBe(appointment);
     });

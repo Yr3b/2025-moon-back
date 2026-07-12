@@ -9,6 +9,10 @@ import { DateFilter } from 'src/infraestructure/repositories/interfaces/appointm
 export interface IAppointmentService {
   findById(id: number): Promise<Appointment>;
   findDetailsById(id: number): Promise<Appointment>;
+  findDetailsByIdForUser(
+    id: number,
+    user: JwtPayload,
+  ): Promise<Appointment>;
   updateBilling(
     appointmentId: number,
     billedTotal: number | null,

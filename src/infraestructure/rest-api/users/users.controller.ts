@@ -134,7 +134,10 @@ export class UsersController {
   }
 
   @Get('/:id')
-  getUser(@Param('id', new ParseIntPipe()) id: number) {
+  getUser(
+    @AuthenticatedUser() _user: JwtPayload,
+    @Param('id', new ParseIntPipe()) id: number,
+  ) {
     return this.usersService.findById(id);
   }
 

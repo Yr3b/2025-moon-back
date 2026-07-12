@@ -6,7 +6,7 @@ import { UpdateUserDto } from 'src/infraestructure/dtos/users/update-user.dto';
 import { User } from 'src/infraestructure/entities/user/user.entity';
 
 export interface IUsersService {
-  create(dto: CreateUserDto): Promise<User>;
+  create(dto: CreateUserDto): Promise<Partial<User>>;
   update(user: JwtPayload, dto: UpdateUserDto): Promise<{ token: string }>;
   updatePassword(user: JwtPayload, dto: UpdateUserPasswordDto): Promise<void>;
   getWorkshopById(id: number): Promise<User | null>;

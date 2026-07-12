@@ -251,8 +251,33 @@ export class BudgetService implements IBudgetService {
     return budget;
   }
 
-  getByAppointment(appointmentId: number): Promise<Budget[]> {
+  async getByIdForUser(user: JwtPayload, id: number): Promise<Budget> {
+    const budget = await this.getById(id);
+    this.assertCanAccessAppointment(budget.appointment, user);
+    return budget;
+  }
+
+  async getByAppointment(
+    user: JwtPayload,
+    appointmentId: number,
+  ): Promise<Budget[]> {
+    const appointment = await this.appointmentService.findById(appointmentId);
+    this.assertCanAccessAppointment(appointment, user);
     return this.repository.findByAppointmentId(appointmentId);
+  }
+
+  private assertCanAccessAppointment(
+    appointment: Appointment,
+    user: JwtPayload,
+  ): void {
+    if (
+      appointment.workshop.id !== user.id &&
+      appointment.user.id !== user.id
+    ) {
+      throw new UnauthorizedException(
+        'Not authorized to access this budget',
+      );
+    }
   }
 
   async getWorkshopCostControl(

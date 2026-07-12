@@ -32,4 +32,22 @@ export class UsersRepository
   async findByEmail(email: string) {
     return this.findOne({ where: { email } });
   }
+
+  findByEmailWithPassword(email: string): Promise<User | null> {
+    return this.createQueryBuilder('user')
+      .addSelect('user.hashedPassword')
+      .where('user.email = :email', { email })
+      .getOne();
+  }
+
+  async findByIdWithPassword(id: number): Promise<User> {
+    const user = await this.createQueryBuilder('user')
+      .addSelect('user.hashedPassword')
+      .where('user.id = :id', { id })
+      .getOne();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
 }

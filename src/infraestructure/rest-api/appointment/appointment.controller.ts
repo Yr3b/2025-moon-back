@@ -131,8 +131,11 @@ export class AppointmentController {
   }
 
   @Get('/:id')
-  getAppointment(@Param('id', new ParseIntPipe()) id: number) {
-    return this.appointmentService.findDetailsById(id);
+  getAppointment(
+    @AuthenticatedUser() user: JwtPayload,
+    @Param('id', new ParseIntPipe()) id: number,
+  ) {
+    return this.appointmentService.findDetailsByIdForUser(id, user);
   }
 
   @Get('/workshop/range')
