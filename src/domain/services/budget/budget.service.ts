@@ -74,7 +74,10 @@ export class BudgetService implements IBudgetService {
       );
     }
 
-    const { items, estimatedTotal } = await this.buildItems(dto.items);
+    const { items, estimatedTotal } = await this.buildItems(
+      dto.items,
+      workshop,
+    );
     return this.repository.createBudget({
       appointmentId: appointment.id,
       isAdditional: false,
@@ -96,7 +99,10 @@ export class BudgetService implements IBudgetService {
       throw new BadRequestException('Only draft budgets can be edited');
     }
 
-    const { items, estimatedTotal } = await this.buildItems(dto.items);
+    const { items, estimatedTotal } = await this.buildItems(
+      dto.items,
+      workshop,
+    );
 
     // Reemplazo total de los ítems del presupuesto.
     await BudgetItem.delete({ budgetId: budget.id });
@@ -178,8 +184,16 @@ export class BudgetService implements IBudgetService {
         'Create the main budget before adding additionals',
       );
     }
+    if (original.status === BudgetStatus.REJECTED) {
+      throw new BadRequestException(
+        'No se pueden agregar adicionales a un presupuesto rechazado por el cliente.',
+      );
+    }
 
-    const { items, estimatedTotal } = await this.buildItems(dto.items);
+    const { items, estimatedTotal } = await this.buildItems(
+      dto.items,
+      workshop,
+    );
     return this.repository.createBudget({
       appointmentId: appointment.id,
       isAdditional: true,
@@ -347,13 +361,13 @@ export class BudgetService implements IBudgetService {
       0,
     );
 
-    const appointment = await this.appointmentService.findById(appointmentId);
-    let billedTotal = appointment.billedTotal ?? null;
-
+    // Se recalcula SIEMPRE desde los presupuestos aprobados actuales (no se
+    // arrastra el billedTotal previo del turno). Así, apenas se aprueba un
+    // adicional, su monto queda reflejado en el precio final del turno.
     const allItemized = approved.every((b) => b.actualTotal !== null);
-    if (allItemized) {
-      billedTotal = approved.reduce((sum, b) => sum + (b.actualTotal ?? 0), 0);
-    }
+    const billedTotal = allItemized
+      ? approved.reduce((sum, b) => sum + (b.actualTotal ?? 0), 0)
+      : null;
 
     const finalPrice = billedTotal ?? estimatedTotal;
     await this.appointmentService.updateBilling(
@@ -394,6 +408,7 @@ export class BudgetService implements IBudgetService {
 
   private async buildItems(
     dtoItems: CreateBudgetItemDto[],
+    workshop: JwtPayload,
   ): Promise<{ items: CreateBudgetItemData[]; estimatedTotal: number }> {
     const serviceIds = dtoItems
       .filter((i) => i.kind === BudgetItemKind.SERVICE && i.serviceId)
@@ -408,6 +423,17 @@ export class BudgetService implements IBudgetService {
     const spareParts = sparePartIds.length
       ? await this.sparePartService.getByIds(sparePartIds)
       : [];
+
+    // Un taller solo puede usar repuestos propios: se valida que cada
+    // repuesto referenciado pertenezca al mecánico autenticado.
+    const foreignPart = spareParts.find(
+      (part) => part.mechanic?.id !== workshop.id,
+    );
+    if (foreignPart) {
+      throw new UnauthorizedException(
+        `El repuesto ${foreignPart.id} no pertenece a tu taller`,
+      );
+    }
 
     const items: CreateBudgetItemData[] = dtoItems.map((dto) =>
       this.buildItem(dto, services, spareParts),
